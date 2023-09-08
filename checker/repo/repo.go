@@ -5,22 +5,16 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type NN interface {
+type NNChatGPT interface {
 	AddResultNN(add models.Storage) error
 }
 
-type ChatGPT interface {
-	AddResultChatGPT(add models.Storage) error
-}
-
 type Repository struct {
-	NN
-	ChatGPT
+	NNChatGPT
 }
 
 func NewRepository(db *sqlx.DB) *Repository {
 	return &Repository{
-		NN:      NewNnRepo(db),
-		ChatGPT: NewChatGPTRepo(db),
+		NNChatGPT: NewNnChatGPTRepo(db),
 	}
 }

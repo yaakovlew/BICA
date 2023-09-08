@@ -2,13 +2,12 @@ package main
 
 import (
 	"checker/repo"
+	service2 "checker/service"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
-	"os/signal"
-	"syscall"
 )
 
 func main() {
@@ -32,25 +31,13 @@ func main() {
 		logrus.Fatalf("Fatal to connect to DB, because: %s", err.Error())
 	}
 	repos := repo.NewRepository(db)
+	service := service2.NewService(repos)
 
-	go func() {
-		if err := srv.Run(handlers.InitRoutes()); err != nil {
-			logrus.Fatalf("Problem with start server, because %s", err.Error())
-		}
-	}()
-	logrus.Println("backend started")
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
-	<-quit
-	logrus.Println("backend shutting down")
-
-	if err := db.Close(); err != nil {
-		logrus.Errorf("error occured on db connection close: %s", err.Error())
-	}
+	service.SendTOChatGPT("соси жопу")
 }
 
 func initConfig() error {
-	viper.AddConfigPath("configs")
+	viper.AddConfigPath("config")
 	viper.SetConfigName("config")
 	return viper.ReadInConfig()
 }
