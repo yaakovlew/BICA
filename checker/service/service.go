@@ -3,7 +3,8 @@ package service
 import "checker/repo"
 
 type NNChatGPT interface {
-	SendTOChatGPT(string) error
+	SendTOChatGPT(str, answer string) error
+	ParseCSVFile(path string)
 	//SendTONN(string) error
 }
 

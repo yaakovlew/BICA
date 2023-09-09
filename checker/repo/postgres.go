@@ -6,8 +6,7 @@ import (
 )
 
 const (
-	nnAnswer      = "nn_answer"
-	chatGPTAnswer = "chat_answer"
+	nnAnswer = "nn_answer"
 )
 
 type Config struct {

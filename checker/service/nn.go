@@ -2,11 +2,14 @@ package service
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"checker/models"
 	"checker/repo"
@@ -34,7 +37,7 @@ func NewNNChatGPTService(repo repo.NNChatGPT) *NNChatGPTService {
 	return &NNChatGPTService{repo: repo}
 }
 
-func (s *NNChatGPTService) SendTOChatGPT(str string) error {
+func (s *NNChatGPTService) SendTOChatGPT(str, realAnswer string) error {
 	msg := []models.Msg{}
 
 	msg = append(msg, models.Msg{
@@ -68,7 +71,6 @@ func (s *NNChatGPTService) SendTOChatGPT(str string) error {
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+os.Getenv("CHAT_TOKEN"))
-	//req.Header.Add("Authorization", os.Getenv("CHAT_TOKEN"))
 
 	client := &http.Client{}
 
@@ -89,15 +91,74 @@ func (s *NNChatGPTService) SendTOChatGPT(str string) error {
 		return err
 	}
 
-	fmt.Print(string(bodyReq), answer.Choices)
-	/*add := models.Storage{
-		Sentence: str,
-		Answer:   string(body),
+	return s.produce(str, realAnswer, answer.Choices[0].MSG.Content)
+}
+
+func ParseString(str string) []models.ToAddInDB {
+	feelings := []models.ToAddInDB{}
+	feels := strings.Split(str, "\n")
+	for _, feel := range feels {
+		emotionRate := strings.Split(feel, "-")
+		emotionRate[1] = strings.ReplaceAll(emotionRate[1], " ", "")
+		feelings = append(feelings, models.ToAddInDB{
+			Feeling: emotionRate[0],
+			Rate:    emotionRate[1],
+		})
 	}
 
-	if err := s.repo.AddResultNN(add); err != nil {
-		return err
-	}*/
+	return feelings
+}
 
-	return nil
+func (s *NNChatGPTService) produce(sentence, realAnswer, request string) error {
+	query := fmt.Sprintf("INSERT INTO nn_answer(sentance, real_answer, current_answer")
+	mass := ParseString(request)
+	var max float64
+	var maxStr string = mass[0].Feeling
+	for _, mas := range mass {
+		f, _ := strconv.ParseFloat(mas.Rate, 64)
+		if f >= max {
+			max = f
+			maxStr = mas.Feeling
+		}
+	}
+	queryAdd := "VALUES(" + sentence + ", " + realAnswer + ", " + EnglishName(maxStr)
+	for _, mas := range mass {
+		query = query + ", " + EnglishName(mas.Feeling)
+		queryAdd = queryAdd + ", " + string(mas.Rate)
+	}
+	query = query + ") " + queryAdd + ")"
+	fmt.Println(query)
+
+	return s.repo.Query(query)
+}
+
+func EnglishName(str string) string {
+	feelings := make(map[string]string)
+
+	feelings["хорошо"] = "good"
+	feelings["плохо"] = "bad"
+
+	return feelings[str]
+}
+
+func (s *NNChatGPTService) ParseCSVFile(path string) {
+	file, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+
+	for {
+		record, err := reader.Read()
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			panic(err)
+		}
+		fmt.Println(record[0], record[1])
+		s.SendTOChatGPT(record[0], record[1])
+	}
 }

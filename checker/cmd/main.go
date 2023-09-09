@@ -2,7 +2,7 @@ package main
 
 import (
 	"checker/repo"
-	service2 "checker/service"
+	"checker/service"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -31,9 +31,19 @@ func main() {
 		logrus.Fatalf("Fatal to connect to DB, because: %s", err.Error())
 	}
 	repos := repo.NewRepository(db)
-	service := service2.NewService(repos)
 
-	service.SendTOChatGPT("соси жопу")
+	feelings := make(map[string]string)
+
+	feelings["хорошо"] = "good"
+	feelings["плохо"] = "bad"
+
+	/*if err := repos.InitTable(feelings); err != nil {
+		panic(err)
+	}*/
+
+	servicer := service.NewService(repos)
+
+	servicer.ParseCSVFile("/Users/yaakovlew/Desktop/BICA/checker/example.csv")
 }
 
 func initConfig() error {

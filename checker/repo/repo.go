@@ -7,6 +7,8 @@ import (
 
 type NNChatGPT interface {
 	AddResultNN(add models.Storage) error
+	InitTable(columns map[string]string) error
+	Query(str string) error
 }
 
 type Repository struct {

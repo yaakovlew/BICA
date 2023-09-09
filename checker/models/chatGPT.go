@@ -26,3 +26,8 @@ type MsgAnswer struct {
 type MSG struct {
 	Content string `json:"content"`
 }
+
+type ToAddInDB struct {
+	Feeling string `json:"feeling"`
+	Rate    string `json:"rate"`
+}
