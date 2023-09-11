@@ -44,6 +44,7 @@ func main() {
 	servicer := service.NewService(repos)
 
 	servicer.ParseCSVFile("/Users/yaakovlew/Desktop/BICA/checker/example.csv")
+
 }
 
 func initConfig() error {
