@@ -91,6 +91,10 @@ func (s *NNChatGPTService) SendTOChatGPT(str, realAnswer string) error {
 		return err
 	}
 
+	if answer.Choices[0].MSG.Content == "" {
+		return nil
+	}
+
 	return s.produce(str, realAnswer, answer.Choices[0].MSG.Content)
 }
 
@@ -101,7 +105,7 @@ func ParseString(str string) []models.ToAddInDB {
 		emotionRate := strings.Split(feel, "-")
 		emotionRate[1] = strings.ReplaceAll(emotionRate[1], " ", "")
 		feelings = append(feelings, models.ToAddInDB{
-			Feeling: emotionRate[0],
+			Feeling: emotionRate[0][:len(emotionRate[0])-1],
 			Rate:    emotionRate[1],
 		})
 	}
@@ -158,7 +162,7 @@ func (s *NNChatGPTService) ParseCSVFile(path string) {
 			}
 			panic(err)
 		}
-		fmt.Println(record[0], record[1])
+
 		s.SendTOChatGPT(record[0], record[1])
 	}
 }
