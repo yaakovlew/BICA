@@ -34,8 +34,12 @@ func main() {
 
 	feelings := make(map[string]string)
 
-	feelings["хорошо"] = "good"
-	feelings["плохо"] = "bad"
+	feelings["злость"] = "anger"
+	feelings["страх"] = "fear"
+	feelings["радость"] = "joy"
+	feelings["любовь"] = "love"
+	feelings["грусть"] = "sadness"
+	feelings["удивление"] = "surprise"
 
 	/*if err := repos.InitTable(feelings); err != nil {
 		panic(err)
@@ -43,7 +47,7 @@ func main() {
 
 	servicer := service.NewService(repos)
 
-	servicer.ParseCSVFile("/Users/yaakovlew/Desktop/BICA/checker/example.csv")
+	servicer.ParseCSVFile("/Users/yaakovlew/Desktop/Mephi/7 семестр/BICA/checker/example.csv")
 
 }
 

@@ -91,7 +91,11 @@ func (s *NNChatGPTService) SendTOChatGPT(str, realAnswer string) error {
 		return err
 	}
 
-	if answer.Choices[0].MSG.Content == "" {
+	if len(answer.Choices) == 0 {
+		return nil
+	}
+
+	if answer.Choices[0] == (models.MsgAnswer{}) {
 		return nil
 	}
 
@@ -139,8 +143,12 @@ func (s *NNChatGPTService) produce(sentence, realAnswer, request string) error {
 func EnglishName(str string) string {
 	feelings := make(map[string]string)
 
-	feelings["хорошо"] = "good"
-	feelings["плохо"] = "bad"
+	feelings["злость"] = "anger"
+	feelings["страх"] = "fear"
+	feelings["радость"] = "joy"
+	feelings["любовь"] = "love"
+	feelings["грусть"] = "sadness"
+	feelings["удивление"] = "surprise"
 
 	return feelings[str]
 }
