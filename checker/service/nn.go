@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"checker/models"
 	"checker/repo"
@@ -18,20 +19,6 @@ import (
 type NNChatGPTService struct {
 	repo repo.NNChatGPT
 }
-
-var startString string = ` Представь себе, что ты работаешь в качестве регистратора в отеле. Отвечай только его лица регистратора в отеле. 
- Твоей основной задачей является помощь гостям с заселением и их непосредственное заселение. 
- Сначала ты должен установить намерения гостя: хочет ли он заселиться или подошел к тебе по другому вопросу? Есть ли у него бронь? 
- Если брони нет, вы должны предложить доступные варианты размещения (два стандартных номера, люкс и полулюкс). Для этого спроси их о потребностяъ и предпочтениях, 
- расспрашивая о желаемых датах проживания, количестве проживающих и других особых пожеланиях. 
- Когда посетитель выберет вариант размещения оформите все документы, скажите клиенту номер комнаты и этаж, дальше ключ-карту и скажите о том, 
- что вы всегда доступны для каких-либо вопросов 
- Ваш стиль общения - вежлив и предупредителен; вы стараетесь обеспечить максимальную комфортность и удовлетворенность клиента. 
- В каждой твоей реплике должен быть вопрос или запрос к клиенту, чтобы не заставлять его ждать. Ты должен дейстсован и брать инициативу в разговоре. 
- Если тебя просят что-то сделать ты должен это сделать и озвучить итог твоего действия или ответ. 
- Если тебя просят ответить на вопрос ты должен озвучить свой ответ. 
- ПОСТАРАЙСЯ НЕ ПОВТОРЯТЬ ОДНИ И ТЕ ЖЕ РЕПЛИКИ ДВА И БОЛЕЕ РАЗА ПОДРЯД 
- строка:`
 
 func NewNNChatGPTService(repo repo.NNChatGPT) *NNChatGPTService {
 	return &NNChatGPTService{repo: repo}
@@ -42,7 +29,7 @@ func (s *NNChatGPTService) SendTOChatGPT(str, realAnswer string) error {
 
 	msg = append(msg, models.Msg{
 		Role:    "system",
-		Content: "Ты механизм по определению человеческих эмоций.\n Твоей основной задачей является определить вероятность каждой эмоции из сказанного предложения от 0 до 1. В твоем распоряжении только 4 эмоции для угадывания – грусть, злость, радость, отсутствие эмоций. \nПОСТАРАЙСЯ НЕ ПОВТОРЯТЬ ОДНИ И ТЕ ЖЕ РЕПЛИКИ ДВА И БОЛЕЕ РАЗА ПОДРЯД",
+		Content: "Ты механизм по определению человеческих эмоций.\\nТвоей основной задачей является определить вероятность каждой эмоции из сказанного предложения от 0 до 1.\\nВ твоем распоряжении только 8 эмоций для угадывания – радость, удивление, страх, отвращение, злость, грусть, стыд, нейтральность.\\nИспользуй эмоции только из указанного списка!\\nПОСТАРАЙСЯ НЕ ПОВТОРЯТЬ ОДНИ И ТЕ ЖЕ РЕПЛИКИ ДВА И БОЛЕЕ РАЗА ПОДРЯД \\nНе пиши ничего в ответ на отправленное предложение, кроме перечисления вероятностей эмоций\\n",
 	})
 	msg = append(msg, models.Msg{
 		Role:    "assistant",
@@ -84,7 +71,7 @@ func (s *NNChatGPTService) SendTOChatGPT(str, realAnswer string) error {
 	if err != nil {
 		return err
 	}
-
+	fmt.Println(string(bodyReq))
 	var answer models.ToParseAnswer
 	err = json.Unmarshal(bodyReq, &answer)
 	if err != nil {
@@ -105,31 +92,45 @@ func (s *NNChatGPTService) SendTOChatGPT(str, realAnswer string) error {
 func ParseString(str string) []models.ToAddInDB {
 	feelings := []models.ToAddInDB{}
 	feels := strings.Split(str, "\n")
+
 	for _, feel := range feels {
-		emotionRate := strings.Split(feel, "-")
+		emotionRate := strings.Split(feel, ":")
+
 		emotionRate[1] = strings.ReplaceAll(emotionRate[1], " ", "")
 		feelings = append(feelings, models.ToAddInDB{
-			Feeling: emotionRate[0][:len(emotionRate[0])-1],
+			Feeling: strings.ReplaceAll(emotionRate[0], " ", ""),
 			Rate:    emotionRate[1],
 		})
 	}
-
+	fmt.Println(feelings)
 	return feelings
 }
 
 func (s *NNChatGPTService) produce(sentence, realAnswer, request string) error {
-	query := fmt.Sprintf("INSERT INTO nn_answer(sentance, real_answer, current_answer")
+	query := fmt.Sprintf("INSERT INTO nn_answer(sentence, real_answer, current_answer")
 	mass := ParseString(request)
-	var max float64
-	var maxStr string = mass[0].Feeling
+	fmt.Println(mass)
+	if len(mass) == 0 {
+		return nil
+	}
+	if len(mass) != 0 {
+		if mass[0].Feeling == "Вероятностиэмоций" {
+			mass = mass[1:]
+		}
+	}
+	var max float64 = 0
+	var maxStr string = ""
 	for _, mas := range mass {
 		f, _ := strconv.ParseFloat(mas.Rate, 64)
+		fmt.Println(max, f)
 		if f >= max {
 			max = f
 			maxStr = mas.Feeling
 		}
 	}
-	queryAdd := "VALUES(" + sentence + ", " + realAnswer + ", " + EnglishName(maxStr)
+	fmt.Println(maxStr)
+	queryAdd := "VALUES(" + "'" + sentence + "'" + ", " + "'" + RussianName(realAnswer) + "'" + ", " + "'" + maxStr + "'"
+
 	for _, mas := range mass {
 		query = query + ", " + EnglishName(mas.Feeling)
 		queryAdd = queryAdd + ", " + string(mas.Rate)
@@ -149,6 +150,94 @@ func EnglishName(str string) string {
 	feelings["любовь"] = "love"
 	feelings["грусть"] = "sadness"
 	feelings["удивление"] = "surprise"
+	feelings["отвращение"] = "disgust"
+	feelings["стыд"] = "shame"
+	feelings["нейтральность"] = "neutrality"
+	feelings["Злость"] = "anger"
+	feelings["Страх"] = "fear"
+	feelings["Радость"] = "joy"
+	feelings["Любовь"] = "love"
+	feelings["Грусть"] = "sadness"
+	feelings["Удивление"] = "surprise"
+	feelings["Отвращение"] = "disgust"
+	feelings["Стыд"] = "shame"
+	feelings["Нейтральность"] = "neutrality"
+	feelings["восхищение"] = "admiration"
+	feelings["веселье"] = "amusement"
+	feelings["раздражение"] = "annoyance"
+	feelings["одобрение"] = "approval"
+	feelings["забота"] = "caring"
+	feelings["непонимание"] = "confusion"
+	feelings["любопытство"] = "curiosity"
+	feelings["желание"] = "desire"
+	feelings["разочарование"] = "disappointment"
+	feelings["неодобрение"] = "disapproval"
+	feelings["смущение"] = "embarrassment"
+	feelings["возбуждение"] = "excitement"
+	feelings["признательность"] = "gratitude"
+	feelings["горе"] = "grief"
+	feelings["нервозность"] = "nervousness"
+	feelings["оптимизм"] = "optimism"
+	feelings["гордость"] = "pride"
+	feelings["осознание"] = "realization"
+	feelings["облегчение"] = "relief"
+	feelings["раскаяние"] = "remorse"
+
+	feelings["Восхищение"] = "admiration"
+	feelings["Веселье"] = "amusement"
+	feelings["Раздражение"] = "annoyance"
+	feelings["Одобрение"] = "approval"
+	feelings["Забота"] = "caring"
+	feelings["Непонимание"] = "confusion"
+	feelings["Любопытство"] = "curiosity"
+	feelings["Желание"] = "desire"
+	feelings["Разочарование"] = "disappointment"
+	feelings["Неодобрение"] = "disapproval"
+	feelings["Смущение"] = "embarrassment"
+	feelings["Возбуждение"] = "excitement"
+	feelings["Признательность"] = "gratitude"
+	feelings["Горе"] = "grief"
+	feelings["Нервозность"] = "nervousness"
+	feelings["Оптимизм"] = "optimism"
+	feelings["Гордость"] = "pride"
+	feelings["Осознание"] = "realization"
+	feelings["Облегчение"] = "relief"
+	feelings["Раскаяние"] = "remorse"
+	return feelings[str]
+}
+
+func RussianName(str string) string {
+	feelings := make(map[string]string)
+
+	feelings["anger"] = "злость"
+	feelings["fear"] = "страх"
+	feelings["joy"] = "радость"
+	feelings["love"] = "любовь"
+	feelings["sadness"] = "грусть"
+	feelings["surprise"] = "удивление"
+	feelings["disgust"] = "отвращение"
+	feelings["shame"] = "стыд"
+	feelings["neutrality"] = "нейтральность"
+	feelings["admiration"] = "восхищение"
+	feelings["amusement"] = "веселье"
+	feelings["annoyance"] = "раздражение"
+	feelings["approval"] = "одобрение"
+	feelings["caring"] = "забота"
+	feelings["confusion"] = "непонимание"
+	feelings["curiosity"] = "любопытство"
+	feelings["desire"] = "желание"
+	feelings["disappointment"] = "разочарование"
+	feelings["disapproval"] = "неодобрение"
+	feelings["embarrassment"] = "смущение"
+	feelings["excitement"] = "возбуждение"
+	feelings["gratitude"] = "признательность"
+	feelings["grief"] = "горе"
+	feelings["nervousness"] = "нервозность"
+	feelings["optimism"] = "оптимизм"
+	feelings["pride"] = "гордость"
+	feelings["realization"] = "осознание"
+	feelings["relief"] = "облегчение"
+	feelings["remorse"] = "раскаяние"
 
 	return feelings[str]
 }
@@ -170,7 +259,10 @@ func (s *NNChatGPTService) ParseCSVFile(path string) {
 			}
 			panic(err)
 		}
-
-		s.SendTOChatGPT(record[0], record[1])
+		fmt.Println(record[0], record[1])
+		if err := s.SendTOChatGPT(record[0], record[1]); err != nil {
+			fmt.Println(err)
+		}
+		time.Sleep(20 * time.Second)
 	}
 }

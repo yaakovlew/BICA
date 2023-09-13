@@ -40,14 +40,38 @@ func main() {
 	feelings["любовь"] = "love"
 	feelings["грусть"] = "sadness"
 	feelings["удивление"] = "surprise"
+	feelings["отвращение"] = "disgust"
+	feelings["стыд"] = "shame"
+	feelings["нейтральность"] = "neutrality"
+	feelings["восхищение"] = "admiration"
+	feelings["веселье"] = "amusement"
+	feelings["раздражение"] = "annoyance"
+	feelings["одобрение"] = "approval"
+	feelings["забота"] = "caring"
+	feelings["непонимание"] = "confusion"
+	feelings["любопытство"] = "curiosity"
+	feelings["желание"] = "desire"
+	feelings["разочарование"] = "disappointment"
+	feelings["неодобрение"] = "disapproval"
+	feelings["смущение"] = "embarrassment"
+	feelings["возбуждение"] = "excitement"
+	feelings["признательность"] = "gratitude"
+	feelings["горе"] = "grief"
+	feelings["нервозность"] = "nervousness"
+	feelings["оптимизм"] = "optimism"
+	feelings["гордость"] = "pride"
+	feelings["осознание"] = "realization"
+	feelings["облегчение"] = "relief"
+	feelings["раскаяние"] = "remorse"
 
-	/*if err := repos.InitTable(feelings); err != nil {
-		panic(err)
-	}*/
+	/*
+		if err := repos.InitTable(feelings); err != nil {
+			panic(err)
+		}*/
 
 	servicer := service.NewService(repos)
 
-	servicer.ParseCSVFile("/Users/yaakovlew/Desktop/Mephi/7 семестр/BICA/checker/example.csv")
+	servicer.ParseCSVFile("C:/Users/andre/OneDrive/Рабочий стол/MephiDrone/BICA/checker/example.csv")
 
 }
 
