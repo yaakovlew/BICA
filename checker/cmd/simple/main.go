@@ -42,13 +42,13 @@ func main() {
 	feelings["отвращение"] = "disgust"
 	feelings["нейтральность"] = "neutrality"
 
-	if err := repos.InitTable(feelings); err != nil {
+	/*if err := repos.InitTable(feelings); err != nil {
 		panic(err)
-	}
+	}*/
 
 	servicer := service.NewService(repos)
 
-	servicer.ParseCSVFile("C:/Users/andre/OneDrive/Рабочий стол/MephiDrone/BICA/checker/example.csv")
+	servicer.ParseCSVFile("/Users/yaakovlew/Desktop/Mephi/7 семестр/BICA/checker/example.csv")
 
 }
 

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -144,8 +145,20 @@ func (s *NNChatGPTService) produce(sentence, realAnswer, request string) error {
 			maxStr = mas.Feeling
 		}
 	}
+
+	sort.Slice(mass, func(i, j int) bool {
+		return mass[i].Rate > mass[j].Rate
+	})
+	var flag string = "false"
+
+	for i := 0; i < 2; i++ {
+		if mass[i].Feeling == realAnswer {
+			flag = "true"
+		}
+	}
+
 	fmt.Println(maxStr)
-	queryAdd := "VALUES(" + "'" + sentence + "'" + ", " + "'" + realAnswer + "'" + ", " + "'" + maxStr + "'"
+	queryAdd := "VALUES(" + "'" + sentence + "'" + ", " + "'" + realAnswer + "'" + ", " + "'" + flag + "'"
 
 	for _, mas := range mass {
 		query = query + ", " + EnglishName(mas.Feeling)

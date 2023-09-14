@@ -15,7 +15,7 @@ func NewNnChatGPTRepo(db *sqlx.DB) *ChatGPTRepo {
 }
 
 func (r *ChatGPTRepo) InitTable(columns map[string]string) error {
-	var query string = fmt.Sprintf("CREATE TABLE %s (sentence varchar(300) NOT NULL, real_answer varchar(50) NOT NULL, current_answer varchar(50) NOT NULL", nnAnswer)
+	var query string = fmt.Sprintf("CREATE TABLE %s (sentence varchar(300) NOT NULL, real_answer varchar(50) NOT NULL, current_answer boolean NOT NULL", nnAnswer)
 	for column := range columns {
 		query = query + ", " + columns[column] + " NUMERIC(10,2) DEFAULT 0"
 	}
