@@ -37,17 +37,14 @@ func main() {
 	feelings["злость"] = "anger"
 	feelings["страх"] = "fear"
 	feelings["радость"] = "joy"
-	feelings["любовь"] = "love"
 	feelings["грусть"] = "sadness"
 	feelings["удивление"] = "surprise"
 	feelings["отвращение"] = "disgust"
-	feelings["стыд"] = "shame"
 	feelings["нейтральность"] = "neutrality"
 
-	/*
-		if err := repos.InitTable(feelings); err != nil {
-			panic(err)
-		}*/
+	if err := repos.InitTable(feelings); err != nil {
+		panic(err)
+	}
 
 	servicer := service.NewService(repos)
 

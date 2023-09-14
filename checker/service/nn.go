@@ -25,33 +25,48 @@ func NewNNChatGPTService(repo repo.NNChatGPT) *NNChatGPTService {
 }
 
 func (s *NNChatGPTService) SendTOChatGPT(str, realAnswer string) error {
-	msg := []models.Msg{}
+	body := `{
+  "model": "gpt-3.5-turbo-16k",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Ты механизм по определению человеческих эмоций.\nТвоей основной задачей является определить вероятность каждой эмоции из сказанного предложения от 0 до 1.\nВ твоем распоряжении только 6 эмоций для угадывания – радость, удивление, страх, отвращение, злость, грусть.\nИспользуй эмоции только из указанного списка!\nПОСТАРАЙСЯ НЕ ПОВТОРЯТЬ ОДНИ И ТЕ ЖЕ РЕПЛИКИ ДВА И БОЛЕЕ РАЗА ПОДРЯД \nНе пиши ничего в ответ на отправленное предложение, кроме перечисления вероятностей эмоций\n"
+    },
+    {
+      "role": "user",
+      "content": "Я купил машину, ура!"
+    },
+    {
+      "role": "assistant",
+      "content": "радость - 1\nудивление - 0.2\nстрах - 0.001\nотвращение - 0\nзлость -0\nгрусть - 0"
+    },
+    {
+      "role": "user",
+      "content": "У меня не особо радостный день."
+    },
+    {
+      "role": "assistant",
+      "content": "радость - 0\nудивление - 0.001\nстрах - 0.1\nотвращение - 0.5\nзлость -0.6\nгрусть - 0.99"
+    },
+    {
+      "role": "user",
+      "content":"` + str + `"` + `
+    }
+  ],
+  "temperature": 1,
+  "max_tokens": 405,
+  "top_p": 1,
+  "frequency_penalty": 0,
+  "presence_penalty": 0
+}`
+	fmt.Println(body)
+	/*
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}*/
 
-	msg = append(msg, models.Msg{
-		Role:    "system",
-		Content: "Ты механизм по определению человеческих эмоций.\\nТвоей основной задачей является определить вероятность каждой эмоции из сказанного предложения от 0 до 1.\\nВ твоем распоряжении только 8 эмоций для угадывания – радость, удивление, страх, отвращение, злость, грусть, стыд, нейтральность.\\nИспользуй эмоции только из указанного списка!\\nПОСТАРАЙСЯ НЕ ПОВТОРЯТЬ ОДНИ И ТЕ ЖЕ РЕПЛИКИ ДВА И БОЛЕЕ РАЗА ПОДРЯД \\nНе пиши ничего в ответ на отправленное предложение, кроме перечисления вероятностей эмоций\\n",
-	})
-	msg = append(msg, models.Msg{
-		Role:    "assistant",
-		Content: str,
-	})
-
-	body := models.BodyToRequest{
-		Model:            "gpt-3.5-turbo",
-		Messages:         msg,
-		Temperature:      1,
-		MaxTokens:        256,
-		TopP:             1,
-		FrequencyPenalty: 0,
-		PresencePenalty:  0,
-	}
-
-	jsonData, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer([]byte(body)))
 	if err != nil {
 		return err
 	}
@@ -78,6 +93,7 @@ func (s *NNChatGPTService) SendTOChatGPT(str, realAnswer string) error {
 		return err
 	}
 
+	fmt.Println(realAnswer)
 	if len(answer.Choices) == 0 {
 		return nil
 	}
@@ -92,9 +108,9 @@ func (s *NNChatGPTService) SendTOChatGPT(str, realAnswer string) error {
 func ParseString(str string) []models.ToAddInDB {
 	feelings := []models.ToAddInDB{}
 	feels := strings.Split(str, "\n")
-
+	fmt.Println(feels)
 	for _, feel := range feels {
-		emotionRate := strings.Split(feel, ":")
+		emotionRate := strings.Split(feel, "-")
 
 		emotionRate[1] = strings.ReplaceAll(emotionRate[1], " ", "")
 		feelings = append(feelings, models.ToAddInDB{
@@ -129,7 +145,7 @@ func (s *NNChatGPTService) produce(sentence, realAnswer, request string) error {
 		}
 	}
 	fmt.Println(maxStr)
-	queryAdd := "VALUES(" + "'" + sentence + "'" + ", " + "'" + RussianName(realAnswer) + "'" + ", " + "'" + maxStr + "'"
+	queryAdd := "VALUES(" + "'" + sentence + "'" + ", " + "'" + realAnswer + "'" + ", " + "'" + maxStr + "'"
 
 	for _, mas := range mass {
 		query = query + ", " + EnglishName(mas.Feeling)
@@ -147,62 +163,12 @@ func EnglishName(str string) string {
 	feelings["злость"] = "anger"
 	feelings["страх"] = "fear"
 	feelings["радость"] = "joy"
-	feelings["любовь"] = "love"
 	feelings["грусть"] = "sadness"
 	feelings["удивление"] = "surprise"
 	feelings["отвращение"] = "disgust"
-	feelings["стыд"] = "shame"
+	//feelings["стыд"] = "shame"
 	feelings["нейтральность"] = "neutrality"
-	feelings["Злость"] = "anger"
-	feelings["Страх"] = "fear"
-	feelings["Радость"] = "joy"
-	feelings["Любовь"] = "love"
-	feelings["Грусть"] = "sadness"
-	feelings["Удивление"] = "surprise"
-	feelings["Отвращение"] = "disgust"
-	feelings["Стыд"] = "shame"
-	feelings["Нейтральность"] = "neutrality"
-	feelings["восхищение"] = "admiration"
-	feelings["веселье"] = "amusement"
-	feelings["раздражение"] = "annoyance"
-	feelings["одобрение"] = "approval"
-	feelings["забота"] = "caring"
-	feelings["непонимание"] = "confusion"
-	feelings["любопытство"] = "curiosity"
-	feelings["желание"] = "desire"
-	feelings["разочарование"] = "disappointment"
-	feelings["неодобрение"] = "disapproval"
-	feelings["смущение"] = "embarrassment"
-	feelings["возбуждение"] = "excitement"
-	feelings["признательность"] = "gratitude"
-	feelings["горе"] = "grief"
-	feelings["нервозность"] = "nervousness"
-	feelings["оптимизм"] = "optimism"
-	feelings["гордость"] = "pride"
-	feelings["осознание"] = "realization"
-	feelings["облегчение"] = "relief"
-	feelings["раскаяние"] = "remorse"
 
-	feelings["Восхищение"] = "admiration"
-	feelings["Веселье"] = "amusement"
-	feelings["Раздражение"] = "annoyance"
-	feelings["Одобрение"] = "approval"
-	feelings["Забота"] = "caring"
-	feelings["Непонимание"] = "confusion"
-	feelings["Любопытство"] = "curiosity"
-	feelings["Желание"] = "desire"
-	feelings["Разочарование"] = "disappointment"
-	feelings["Неодобрение"] = "disapproval"
-	feelings["Смущение"] = "embarrassment"
-	feelings["Возбуждение"] = "excitement"
-	feelings["Признательность"] = "gratitude"
-	feelings["Горе"] = "grief"
-	feelings["Нервозность"] = "nervousness"
-	feelings["Оптимизм"] = "optimism"
-	feelings["Гордость"] = "pride"
-	feelings["Осознание"] = "realization"
-	feelings["Облегчение"] = "relief"
-	feelings["Раскаяние"] = "remorse"
 	return feelings[str]
 }
 
@@ -212,33 +178,34 @@ func RussianName(str string) string {
 	feelings["anger"] = "злость"
 	feelings["fear"] = "страх"
 	feelings["joy"] = "радость"
-	feelings["love"] = "любовь"
 	feelings["sadness"] = "грусть"
 	feelings["surprise"] = "удивление"
 	feelings["disgust"] = "отвращение"
 	feelings["shame"] = "стыд"
 	feelings["neutrality"] = "нейтральность"
-	feelings["admiration"] = "восхищение"
-	feelings["amusement"] = "веселье"
-	feelings["annoyance"] = "раздражение"
-	feelings["approval"] = "одобрение"
-	feelings["caring"] = "забота"
-	feelings["confusion"] = "непонимание"
-	feelings["curiosity"] = "любопытство"
-	feelings["desire"] = "желание"
-	feelings["disappointment"] = "разочарование"
-	feelings["disapproval"] = "неодобрение"
-	feelings["embarrassment"] = "смущение"
-	feelings["excitement"] = "возбуждение"
-	feelings["gratitude"] = "признательность"
-	feelings["grief"] = "горе"
-	feelings["nervousness"] = "нервозность"
-	feelings["optimism"] = "оптимизм"
-	feelings["pride"] = "гордость"
-	feelings["realization"] = "осознание"
-	feelings["relief"] = "облегчение"
-	feelings["remorse"] = "раскаяние"
 
+	/*
+		feelings["admiration"] = "восхищение"
+		feelings["amusement"] = "веселье"
+		feelings["annoyance"] = "раздражение"
+		feelings["approval"] = "одобрение"
+		feelings["caring"] = "забота"
+		feelings["confusion"] = "непонимание"
+		feelings["curiosity"] = "любопытство"
+		feelings["desire"] = "желание"
+		feelings["disappointment"] = "разочарование"
+		feelings["disapproval"] = "неодобрение"
+		feelings["embarrassment"] = "смущение"
+		feelings["excitement"] = "возбуждение"
+		feelings["gratitude"] = "признательность"
+		feelings["grief"] = "горе"
+		feelings["nervousness"] = "нервозность"
+		feelings["optimism"] = "оптимизм"
+		feelings["pride"] = "гордость"
+		feelings["realization"] = "осознание"
+		feelings["relief"] = "облегчение"
+		feelings["remorse"] = "раскаяние"
+	*/
 	return feelings[str]
 }
 

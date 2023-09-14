@@ -64,10 +64,9 @@ func main() {
 	feelings["облегчение"] = "relief"
 	feelings["раскаяние"] = "remorse"
 
-	/*
-		if err := repos.InitTable(feelings); err != nil {
-			panic(err)
-		}*/
+	if err := repos.InitTable(feelings); err != nil {
+		panic(err)
+	}
 
 	servicer := service.NewService(repos)
 
